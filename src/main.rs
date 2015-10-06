@@ -96,7 +96,18 @@ impl fmt::Display for Entry {
     }
 }
 
+fn print_tree(dir_entry: Entry) {
+    print_indented_tree(dir_entry, 0);
+}
+
+fn print_indented_tree(entry: Entry, indent: usize) {
+    println!("{0:1$}{2}", "", indent * 2, entry);
+    for child in entry.children() {
+        print_indented_tree(child, indent + 1);
+    }
+}
+
 fn main() {
     let root = Entry::for_path(PathBuf::from(".")).unwrap();
-    println!("{}", root);
+    print_tree(root);
 }
