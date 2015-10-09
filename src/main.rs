@@ -2,19 +2,36 @@ use std::fs;
 use std::path::{Path,PathBuf};
 use std::fmt;
 
-use Entry::{Directory,File};
+use EntryType::{Directory,File};
 
 #[derive(Debug)]
-enum Entry {
-    Directory(PathBuf),
-    File(PathBuf, u64),
+enum EntryType {
+    Directory,
+    File,
+}
+
+type EntryList = Vec<Entry>;
+
+struct Entry {
+    entry_type: EntryType,
+    path: PathBuf,
+    self_size: u64,
 }
 
 impl Entry {
+    fn from_metadata(path: PathBuf, metadata: &fs::Metadata) -> Option<Entry> {
+        if metadata.is_dir() {
+            Some(Entry {path: path, entry_type: Directory, self_size: metadata.len()})
+        } else if metadata.is_file() {
+            Some(Entry {path: path, entry_type: File, self_size: metadata.len()})
+        } else {
+            None
+        }
+    }
+
     fn for_path(path: PathBuf) -> Option<Entry> {
         match fs::metadata(&path) {
-            Ok(ref metadata) if metadata.is_dir() => Some(Directory(path)),
-            Ok(ref metadata) if metadata.is_file() => Some(File(path, metadata.len())),
+            Ok(metadata) => Entry::from_metadata(path, &metadata),
             _ => None
         }
     }
@@ -34,32 +51,29 @@ impl Entry {
     }
 
     fn children(&self) -> Vec<Entry> {
-        match *self {
-            Directory(ref dir) => Entry::in_directory(&dir),
-            File(..) => Vec::new(),
+        // TODO: Cache this
+        match self.entry_type {
+            Directory => Entry::in_directory(&self.path),
+            File => Vec::new(),
         }
     }
 
     fn size(&self) -> u64 {
-        match *self {
-            Directory(_) =>
-                self.children().into_iter().
-                    map(|child| child.size() ).fold(0, |a, n| a + n),
-            File(_, size) => size,
-        }
+        self.self_size + self.descendent_size()
+    }
+
+    fn descendent_size(&self) -> u64 {
+        self.children().into_iter().
+            map(|child| child.size() ).fold(0, |a, n| a + n)
     }
 
     fn file_name(&self) -> &str {
-        match *self {
-            Directory(ref path) | File(ref path, _) => {
-                // Converting paths to strings might fail. We start by trying to convert the
-                // filename. If the path is something like ".", it will fail as there is no "file
-                // name" in that path. We fall back to the entire path in that case. If that also
-                // fails, we fall back to hardcoded representation.
-                let file_name = path.file_name().and_then(|s| s.to_str());
-                file_name.or_else(|| path.to_str()).unwrap_or("(no name)")
-            }
-        }
+        // Converting paths to strings might fail. We start by trying to convert the
+        // filename. If the path is something like ".", it will fail as there is no "file
+        // name" in that path. We fall back to the entire path in that case. If that also
+        // fails, we fall back to hardcoded representation.
+        let file_name = self.path.file_name().and_then(|s| s.to_str());
+        file_name.or_else(|| self.path.to_str()).unwrap_or("(no name)")
     }
 }
 
