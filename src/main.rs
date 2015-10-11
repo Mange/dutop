@@ -2,31 +2,23 @@ use std::fs;
 use std::path::{Path,PathBuf};
 use std::fmt;
 
-use EntryType::{Directory,File};
-
-#[derive(Debug)]
-enum EntryType {
-    Directory,
-    File,
-}
-
-type EntryList = Vec<Entry>;
-
 struct Entry {
-    entry_type: EntryType,
     path: PathBuf,
     self_size: u64,
+    children: Vec<Entry>,
 }
 
 impl Entry {
     fn from_metadata(path: PathBuf, metadata: &fs::Metadata) -> Option<Entry> {
-        if metadata.is_dir() {
-            Some(Entry {path: path, entry_type: Directory, self_size: metadata.len()})
+        let children = if metadata.is_dir() {
+            Entry::in_directory(&path)
         } else if metadata.is_file() {
-            Some(Entry {path: path, entry_type: File, self_size: metadata.len()})
+            vec![]
         } else {
-            None
-        }
+            return None;
+        };
+
+        Some(Entry {children: children, path: path, self_size: metadata.len()})
     }
 
     fn for_path(path: PathBuf) -> Option<Entry> {
@@ -50,21 +42,12 @@ impl Entry {
         }
     }
 
-    fn children(&self) -> Vec<Entry> {
-        // TODO: Cache this
-        match self.entry_type {
-            Directory => Entry::in_directory(&self.path),
-            File => Vec::new(),
-        }
-    }
-
     fn size(&self) -> u64 {
         self.self_size + self.descendent_size()
     }
 
     fn descendent_size(&self) -> u64 {
-        self.children().into_iter().
-            map(|child| child.size() ).fold(0, |a, n| a + n)
+        self.children.iter().map(|child| child.size()).fold(0, |a, n| a + n)
     }
 
     fn file_name(&self) -> &str {
@@ -116,7 +99,7 @@ fn print_tree(dir_entry: Entry) {
 
 fn print_indented_tree(entry: Entry, indent: usize) {
     println!("{0:1$}{2}", "", indent * 2, entry);
-    for child in entry.children() {
+    for child in entry.children {
         print_indented_tree(child, indent + 1);
     }
 }
