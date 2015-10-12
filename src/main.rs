@@ -57,12 +57,16 @@ impl Entry {
 }
 
 trait DisplayableEntry : fmt::Display + Sized {
+    type Child: DisplayableEntry;
+
     fn size(&self) -> u64;
     fn name(&self) -> &str;
-    fn children_iter(&self) -> Iter<Self>;
+    fn children_iter(&self) -> Iter<Self::Child>;
 }
 
 impl DisplayableEntry for Entry {
+    type Child = Entry;
+
     fn size(&self) -> u64 {
         self.self_size + self.descendent_size()
     }
@@ -87,6 +91,38 @@ impl fmt::Display for Entry {
     }
 }
 
+struct Root {
+    entry: Entry,
+}
+
+impl Root {
+    fn new(entry: Entry) -> Root {
+        Root{entry: entry}
+    }
+}
+
+impl DisplayableEntry for Root {
+    type Child = Entry;
+
+    fn size(&self) -> u64 {
+        self.entry.size()
+    }
+
+    fn name(&self) -> &str {
+        self.entry.path.to_str().unwrap_or("(no name)")
+    }
+
+    fn children_iter(&self) -> Iter<Entry> {
+        self.entry.children_iter()
+    }
+}
+
+impl fmt::Display for Root {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.name(), self.entry.size().as_size_display())
+    }
+}
+
 fn print_tree<T: DisplayableEntry>(entry: &T) {
     print_indented_tree(entry, 0);
 }
@@ -102,7 +138,7 @@ fn main() {
     let options = arguments::parse();
     for root in options.roots() {
         match Entry::for_path(root.clone()) {
-            Ok(root) => print_tree(&root),
+            Ok(root) => print_tree(&Root::new(root)),
             Err(message) =>
                 println!("{} ERROR: {}", root.to_string_lossy(), message)
         }
