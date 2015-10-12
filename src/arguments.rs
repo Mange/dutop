@@ -54,6 +54,7 @@ pub fn parse() -> Options {
         (version: "0.1")
         (author: "Magnus Bergmark <magnus.bergmark@gmail.com>")
         (about: "Prints the largest entries in a directory")
+        (usage: "dutop [OPTIONS] [--] [DIR [DIR...]]")
 
         (@arg DIR: ... "The directories to look in (defaults to current working directory).")
 
