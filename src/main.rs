@@ -9,6 +9,7 @@ use std::slice::Iter;
 mod arguments;
 mod utils;
 
+use arguments::Depth;
 use utils::SizeDisplay;
 
 struct Entry {
@@ -128,14 +129,16 @@ impl fmt::Display for Root {
     }
 }
 
-fn print_tree<T: DisplayableEntry>(entry: &T) {
-    print_indented_tree(entry, 0);
+fn print_tree<T: DisplayableEntry>(entry: &T, depth: &Depth) {
+    print_indented_tree(entry, depth, 0);
 }
 
-fn print_indented_tree<T: DisplayableEntry>(entry: &T, indent: usize) {
-    println!("{0:1$}{2}", "", indent * 2, entry);
-    for child in entry.children_iter() {
-        print_indented_tree(child, indent + 1);
+fn print_indented_tree<T: DisplayableEntry>(entry: &T, depth: &Depth, level: usize) {
+    println!("{0:1$}{2}", "", level * 2, entry);
+    if depth.accepts(level) {
+        for child in entry.children_iter() {
+            print_indented_tree(child, depth, level + 1);
+        }
     }
 }
 
@@ -143,7 +146,7 @@ fn main() {
     let options = arguments::parse();
     for root in options.roots() {
         match Entry::for_path(root.clone()) {
-            Ok(root) => print_tree(&Root::new(root)),
+            Ok(root) => print_tree(&Root::new(root), options.depth()),
             Err(message) =>
                 println!("{} ERROR: {}", root.to_string_lossy(), message)
         }
