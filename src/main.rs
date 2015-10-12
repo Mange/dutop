@@ -124,6 +124,12 @@ fn print_indented_tree<T: DisplayableEntry>(entry: &T, indent: usize) {
 
 fn main() {
     let options = arguments::parse();
-    let root = Entry::for_path(options.root()).unwrap();
-    print_tree(&root);
+    match Entry::for_path(options.root()) {
+        Some(root) => print_tree(&root),
+        None =>
+            println!(
+                "Cannot open {} for reading. Does it exist, and do you have permission to open it?",
+                options.root().to_string_lossy()
+            )
+    }
 }
