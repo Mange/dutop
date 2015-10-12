@@ -124,6 +124,6 @@ fn print_indented_tree<T: DisplayableEntry>(entry: &T, indent: usize) {
 
 fn main() {
     let options = arguments::parse();
-    let root = Entry::for_path(PathBuf::from(options.root())).unwrap();
+    let root = Entry::for_path(options.root()).unwrap();
     print_tree(&root);
 }
