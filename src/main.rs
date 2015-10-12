@@ -7,6 +7,7 @@ use std::fmt;
 use std::slice::Iter;
 
 mod arguments;
+mod utils;
 
 struct Entry {
     path: PathBuf,
@@ -15,22 +16,22 @@ struct Entry {
 }
 
 impl Entry {
-    fn from_metadata(path: PathBuf, metadata: &fs::Metadata) -> Option<Entry> {
+    fn from_metadata(path: PathBuf, metadata: &fs::Metadata) -> Result<Entry, String> {
         let children = if metadata.is_dir() {
             Entry::in_directory(&path)
         } else if metadata.is_file() {
             vec![]
         } else {
-            return None;
+            return Err("not a file or directory".to_string());
         };
 
-        Some(Entry {children: children, path: path, self_size: metadata.len()})
+        Ok(Entry {children: children, path: path, self_size: metadata.len()})
     }
 
-    fn for_path(path: PathBuf) -> Option<Entry> {
+    fn for_path(path: PathBuf) -> Result<Entry, String> {
         match fs::metadata(&path) {
             Ok(metadata) => Entry::from_metadata(path, &metadata),
-            _ => None
+            Err(error) => Err(utils::describe_io_error(error))
         }
     }
 
@@ -39,7 +40,7 @@ impl Entry {
             Ok(read_dir) => {
                 read_dir.filter_map(|child| {
                     match child {
-                        Ok(child) => Entry::for_path(child.path()),
+                        Ok(child) => Entry::for_path(child.path()).ok(),
                         Err(..) => None,
                     }
                 }).collect()
@@ -125,11 +126,12 @@ fn print_indented_tree<T: DisplayableEntry>(entry: &T, indent: usize) {
 fn main() {
     let options = arguments::parse();
     match Entry::for_path(options.root()) {
-        Some(root) => print_tree(&root),
-        None =>
+        Ok(root) => print_tree(&root),
+        Err(message) =>
             println!(
-                "Cannot open {} for reading. Does it exist, and do you have permission to open it?",
-                options.root().to_string_lossy()
+                "Cannot open {} for reading: {}",
+                options.root().to_string_lossy(),
+                message
             )
     }
 }
