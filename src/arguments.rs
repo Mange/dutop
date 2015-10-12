@@ -1,12 +1,12 @@
 use std::path::PathBuf;
 
 pub struct Options {
-    root: String,
+    roots: Vec<String>,
 }
 
 impl Options {
-    pub fn root(&self) -> PathBuf {
-        PathBuf::from(&self.root)
+    pub fn roots(&self) -> Vec<PathBuf> {
+        self.roots.iter().map(|root| PathBuf::from(&root)).collect()
     }
 }
 
@@ -15,10 +15,11 @@ pub fn parse() -> Options {
         (version: "0.1")
         (author: "Magnus Bergmark <magnus.bergmark@gmail.com>")
         (about: "Prints the largest entries in a directory")
-        (@arg DIR: "The directory to look in (defaults to current working directory)")
+        (@arg DIR: ... "The directories to look in (defaults to current working directory)")
     ).get_matches();
 
+    let roots = matches.values_of("DIR").unwrap_or(vec!["."]);
     Options{
-        root: matches.value_of("DIR").unwrap_or(".").to_string(),
+        roots: roots.iter().map(|value| value.to_string()).collect(),
     }
 }

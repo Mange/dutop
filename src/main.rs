@@ -125,13 +125,11 @@ fn print_indented_tree<T: DisplayableEntry>(entry: &T, indent: usize) {
 
 fn main() {
     let options = arguments::parse();
-    match Entry::for_path(options.root()) {
-        Ok(root) => print_tree(&root),
-        Err(message) =>
-            println!(
-                "Cannot open {} for reading: {}",
-                options.root().to_string_lossy(),
-                message
-            )
+    for root in options.roots() {
+        match Entry::for_path(root.clone()) {
+            Ok(root) => print_tree(&root),
+            Err(message) =>
+                println!("{} ERROR: {}", root.to_string_lossy(), message)
+        }
     }
 }
