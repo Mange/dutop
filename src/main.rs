@@ -1,7 +1,12 @@
+#[macro_use]
+extern crate clap;
+
 use std::fs;
 use std::path::{Path,PathBuf};
 use std::fmt;
 use std::slice::Iter;
+
+mod arguments;
 
 struct Entry {
     path: PathBuf,
@@ -118,6 +123,7 @@ fn print_indented_tree<T: DisplayableEntry>(entry: &T, indent: usize) {
 }
 
 fn main() {
-    let root = Entry::for_path(PathBuf::from(".")).unwrap();
+    let options = arguments::parse();
+    let root = Entry::for_path(PathBuf::from(options.root())).unwrap();
     print_tree(&root);
 }

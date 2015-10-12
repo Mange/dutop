@@ -2,3 +2,6 @@
 name = "dutop"
 version = "0.1.0"
 authors = ["Magnus Bergmark <magnus.bergmark@gmail.com>"]
+
+[dependencies]
+clap = "1.4.5"
