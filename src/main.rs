@@ -19,13 +19,18 @@ struct Entry {
 
 impl Entry {
     fn from_metadata(path: PathBuf, metadata: &fs::Metadata) -> Result<Entry, String> {
-        let children = if metadata.is_dir() {
+        let mut children = if metadata.is_dir() {
             Entry::in_directory(&path)
         } else if metadata.is_file() {
             vec![]
         } else {
             return Err("not a file or directory".to_string());
         };
+
+        children.sort_by(
+            // Note: We change the ordering to get in descending order
+            |a, b| b.size().cmp(&a.size())
+        );
 
         Ok(Entry {children: children, path: path, self_size: metadata.len()})
     }
