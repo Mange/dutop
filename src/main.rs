@@ -10,7 +10,6 @@ mod arguments;
 mod utils;
 
 use arguments::Options;
-use arguments::Depth;
 use utils::SizeDisplay;
 
 struct Entry {
@@ -136,9 +135,9 @@ fn print_tree<T: DisplayableEntry>(entry: &T, options: &Options) {
 
 fn print_indented_tree<T: DisplayableEntry>(entry: &T, options: &Options, level: usize) {
     println!("{0:1$}{2}", "", level * 2, entry);
-    if options.depth().accepts(level) {
+    if options.depth_accepts(level) {
         for (index, child) in entry.children_iter().enumerate() {
-            if !options.limit().accepts(index) {
+            if !options.limit_accepts(index) {
                 break;
             }
             print_indented_tree(child, options, level + 1);

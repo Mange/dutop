@@ -2,13 +2,13 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::process::exit;
 
-pub enum Depth {
+enum Depth {
     Unlimited,
     Limited(usize)
 }
 
 impl Depth {
-    pub fn accepts(&self, level: usize) -> bool {
+    fn accepts(&self, level: usize) -> bool {
         match *self {
             Depth::Unlimited => true,
             Depth::Limited(size) => size > level
@@ -34,13 +34,13 @@ impl FromStr for Depth {
     }
 }
 
-pub enum Limit {
+enum Limit {
     Unlimited,
     Limited(usize)
 }
 
 impl Limit {
-    pub fn accepts(&self, index: usize) -> bool {
+    fn accepts(&self, index: usize) -> bool {
         match *self {
             Limit::Unlimited => true,
             Limit::Limited(count) => count > index
@@ -77,12 +77,12 @@ impl Options {
         self.roots.iter().map(|root| PathBuf::from(&root)).collect()
     }
 
-    pub fn depth(&self) -> &Depth {
-        &self.depth
+    pub fn depth_accepts(&self, level: usize) -> bool {
+        self.depth.accepts(level)
     }
 
-    pub fn limit(&self) -> &Limit {
-        &self.limit
+    pub fn limit_accepts(&self, index: usize) -> bool {
+        self.limit.accepts(index)
     }
 }
 
