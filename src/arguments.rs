@@ -40,15 +40,6 @@ enum Limit {
     Limited(usize)
 }
 
-impl Limit {
-    fn accepts(&self, index: usize) -> bool {
-        match *self {
-            Limit::Unlimited => true,
-            Limit::Limited(count) => count > index
-        }
-    }
-}
-
 impl FromStr for Limit {
     type Err = String;
 
@@ -84,8 +75,11 @@ impl Options {
         self.depth.accepts(level)
     }
 
-    pub fn limit_accepts(&self, index: usize) -> bool {
-        self.limit.accepts(index)
+    pub fn limit_reached(&self, shown_entries: usize) -> bool {
+        match self.limit {
+            Limit::Unlimited => false,
+            Limit::Limited(max) => max <= shown_entries
+        }
     }
 
     pub fn should_show_hidden(&self) -> bool {

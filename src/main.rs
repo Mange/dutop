@@ -151,11 +151,16 @@ fn print_indented_tree<T: DisplayableEntry>(entry: &T, options: &Options, level:
         let mut shown_entries = 0;
 
         for child in entry.children_iter() {
-            if !options.limit_accepts(shown_entries) { break; }
-            if !options.should_show_hidden() && child.is_hidden() { continue; }
+            if !options.should_show_hidden() && child.is_hidden() {
+                continue;
+            }
 
             print_indented_tree(child, options, level + 1);
             shown_entries += 1;
+
+            if options.limit_reached(shown_entries) {
+                break;
+            }
         }
     }
 }
