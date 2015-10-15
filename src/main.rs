@@ -166,7 +166,7 @@ fn main() {
         match Entry::for_path(root.clone()) {
             Ok(root) => print_tree(&Root::new(root), &options),
             Err(message) =>
-                println!("{} ERROR: {}", root.to_string_lossy(), message)
+                println!("{}: {}", root.to_string_lossy(), message)
         }
     }
 }
