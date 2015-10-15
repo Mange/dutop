@@ -25,7 +25,7 @@ impl FromStr for Depth {
             Err(_) => return Err("Not a positive integer".to_string())
         };
 
-        // number: usize is never negative. :-)
+        // usize is never negative. :-)
         if number == 0 {
             Ok(Depth::Unlimited)
         } else {
@@ -34,8 +34,41 @@ impl FromStr for Depth {
     }
 }
 
+pub enum Limit {
+    Unlimited,
+    Limited(usize)
+}
+
+impl Limit {
+    pub fn accepts(&self, index: usize) -> bool {
+        match *self {
+            Limit::Unlimited => true,
+            Limit::Limited(count) => count > index
+        }
+    }
+}
+
+impl FromStr for Limit {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, String> {
+        let number = match s.parse::<usize>() {
+            Ok(number) => number,
+            Err(_) => return Err("Not a positive integer".to_string())
+        };
+
+        // usize is never negative. :-)
+        if number == 0 {
+            Ok(Limit::Unlimited)
+        } else {
+            Ok(Limit::Limited(number))
+        }
+    }
+}
+
 pub struct Options {
     roots: Vec<String>,
+    limit: Limit,
     depth: Depth,
 }
 
@@ -46,6 +79,10 @@ impl Options {
 
     pub fn depth(&self) -> &Depth {
         &self.depth
+    }
+
+    pub fn limit(&self) -> &Limit {
+        &self.limit
     }
 }
 
@@ -58,6 +95,19 @@ pub fn parse() -> Options {
 
         (@arg DIR: ... "The directories to look in (defaults to current working directory).")
 
+        (@arg limit:
+            -n [LIMIT]
+            {|value| {
+                let parsed = value.parse::<usize>();
+                if parsed.is_ok() {
+                    Ok(())
+                } else {
+                    Err("Not a positive integer".to_string())
+                }
+            }}
+            "The max number of enties shown at each level. Defaults to 1. 0 means all children."
+        )
+
         (@arg depth:
             -d --depth [INT]
             {|value| {
@@ -68,10 +118,15 @@ pub fn parse() -> Options {
                     Err("Not a positive integer".to_string())
                 }
             }}
-            "The depth to recurse when printing out entries. Defaults to 1. 0 means unlimited depth."
+            "The depth to recurse when printing out entries. Defaults to 1. 0 means \
+                unlimited depth."
         )
 
-        (@arg recursive: -r --recursive "Show the entire tree instead of just the direct children. This implies unlimited --depth.")
+        (@arg recursive:
+            -r --recursive
+            "Show the entire tree instead of just the direct children. This implies \
+                unlimited --depth."
+        )
     ).get_matches();
 
     let roots = matches.values_of("DIR").unwrap_or(vec!["."]);
@@ -95,8 +150,15 @@ pub fn parse() -> Options {
         false => default_depth
     };
 
+    let limit = matches.value_of("limit").unwrap_or("1")
+        .parse::<Limit>().unwrap_or_else(|error| {
+            println!("Could not determine depth: {}", error);
+            exit(2);
+        });
+
     Options{
         roots: roots.iter().map(|value| value.to_string()).collect(),
+        limit: limit,
         depth: depth,
     }
 }
