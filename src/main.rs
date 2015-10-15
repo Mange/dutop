@@ -68,6 +68,10 @@ trait DisplayableEntry : fmt::Display + Sized {
     fn size(&self) -> u64;
     fn name(&self) -> &str;
     fn children_iter(&self) -> Iter<Self::Child>;
+
+    fn is_hidden(&self) -> bool {
+        self.name().chars().nth(0) == Some('.')
+    }
 }
 
 impl DisplayableEntry for Entry {
@@ -121,6 +125,14 @@ impl DisplayableEntry for Root {
     fn children_iter(&self) -> Iter<Entry> {
         self.entry.children_iter()
     }
+
+    fn is_hidden(&self) -> bool {
+        // Roots are never hidden; we always want to show them since the user gave them to us
+        // explicitly.
+        // Roots can also have the name ".", so they would appear to be hidden in that case unless
+        // we handle it differently.
+        false
+    }
 }
 
 impl fmt::Display for Root {
@@ -136,11 +148,14 @@ fn print_tree<T: DisplayableEntry>(entry: &T, options: &Options) {
 fn print_indented_tree<T: DisplayableEntry>(entry: &T, options: &Options, level: usize) {
     println!("{0:1$}{2}", "", level * 2, entry);
     if options.depth_accepts(level) {
-        for (index, child) in entry.children_iter().enumerate() {
-            if !options.limit_accepts(index) {
-                break;
-            }
+        let mut shown_entries = 0;
+
+        for child in entry.children_iter() {
+            if !options.limit_accepts(shown_entries) { break; }
+            if !options.should_show_hidden() && child.is_hidden() { continue; }
+
             print_indented_tree(child, options, level + 1);
+            shown_entries += 1;
         }
     }
 }

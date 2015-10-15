@@ -70,6 +70,7 @@ pub struct Options {
     roots: Vec<String>,
     limit: Limit,
     depth: Depth,
+    show_all: bool,
 }
 
 impl Options {
@@ -83,6 +84,10 @@ impl Options {
 
     pub fn limit_accepts(&self, index: usize) -> bool {
         self.limit.accepts(index)
+    }
+
+    pub fn should_show_hidden(&self) -> bool {
+        self.show_all
     }
 }
 
@@ -127,6 +132,11 @@ pub fn parse() -> Options {
             "Show the entire tree instead of just the direct children. This implies \
                 unlimited --depth."
         )
+
+        (@arg all:
+            -a --all
+            "Show hidden files and directories. They are always counted for the total sum."
+        )
     ).get_matches();
 
     let roots = matches.values_of("DIR").unwrap_or(vec!["."]);
@@ -160,5 +170,6 @@ pub fn parse() -> Options {
         roots: roots.iter().map(|value| value.to_string()).collect(),
         limit: limit,
         depth: depth,
+        show_all: matches.is_present("all"),
     }
 }
