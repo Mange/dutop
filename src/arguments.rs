@@ -20,6 +20,8 @@ impl FromStr for Depth {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, String> {
+        if s == "all" { return Ok(Depth::Unlimited); }
+
         let number = match s.parse::<usize>() {
             Ok(number) => number,
             Err(_) => return Err("Not a positive integer".to_string())
@@ -52,6 +54,8 @@ impl FromStr for Limit {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, String> {
+        if s == "none" { return Ok(Limit::Unlimited); }
+
         let number = match s.parse::<usize>() {
             Ok(number) => number,
             Err(_) => return Err("Not a positive integer".to_string())
@@ -103,27 +107,30 @@ pub fn parse() -> Options {
         (@arg limit:
             -n [LIMIT]
             {|value| {
+                if value == "none" { return Ok(()); }
                 let parsed = value.parse::<usize>();
                 if parsed.is_ok() {
                     Ok(())
                 } else {
-                    Err("Not a positive integer".to_string())
+                    Err("Limit needs to be a non-negative integer or \"none\".".to_string())
                 }
             }}
-            "The max number of enties shown at each level. Defaults to 1. 0 means all children."
+            "The max number of children shown per directory. Defaults to 1. 0 or \"none\" means \
+                no limit."
         )
 
         (@arg depth:
-            -d --depth [INT]
+            -d --depth [DEPTH]
             {|value| {
+                if value == "all" { return Ok(()); }
                 let parsed = value.parse::<usize>();
                 if parsed.is_ok() {
                     Ok(())
                 } else {
-                    Err("Not a positive integer".to_string())
+                    Err("Depth must be a non-negative integer or \"all\".".to_string())
                 }
             }}
-            "The depth to recurse when printing out entries. Defaults to 1. 0 means \
+            "The depth to recurse when printing out entries. Defaults to 1. 0 or \"all\" means \
                 unlimited depth."
         )
 
