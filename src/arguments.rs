@@ -27,11 +27,10 @@ impl FromStr for Depth {
             Err(_) => return Err("Not a positive integer".to_string())
         };
 
-        // usize is never negative. :-)
-        if number == 0 {
-            Ok(Depth::Unlimited)
-        } else {
+        if number > 0 {
             Ok(Depth::Limited(number))
+        } else {
+            Ok(Depth::Unlimited)
         }
     }
 }
@@ -61,11 +60,10 @@ impl FromStr for Limit {
             Err(_) => return Err("Not a positive integer".to_string())
         };
 
-        // usize is never negative. :-)
-        if number == 0 {
-            Ok(Limit::Unlimited)
-        } else {
+        if number > 0 {
             Ok(Limit::Limited(number))
+        } else {
+            Ok(Limit::Unlimited)
         }
     }
 }
