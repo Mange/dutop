@@ -1,4 +1,28 @@
+use std::path::PathBuf;
 use std::io::{Error,ErrorKind};
+
+pub fn full_name_from_path(path: &PathBuf, is_dir: bool) -> String {
+    let name = path.to_string_lossy().into_owned();
+    if is_dir {
+        name + "/"
+    } else {
+        name
+    }
+}
+
+pub fn short_name_from_path(path: &PathBuf, is_dir: bool) -> String {
+    match path.file_name() {
+        Some(file_name) => {
+            let name = file_name.to_string_lossy().into_owned();
+            if is_dir {
+                name + "/"
+            } else {
+                name
+            }
+        },
+        None => full_name_from_path(path, is_dir)
+    }
+}
 
 pub fn describe_io_error(error: Error) -> String {
     match error.kind() {
@@ -36,5 +60,4 @@ impl SizeDisplay for u64 {
         format!("{:.2} {}", scaled, unit)
     }
 }
-
 

@@ -13,7 +13,7 @@ use arguments::Options;
 use utils::SizeDisplay;
 
 struct Entry {
-    path: PathBuf,
+    name: String,
     self_size: u64,
     children: Vec<Entry>,
 }
@@ -33,7 +33,11 @@ impl Entry {
             |a, b| b.size().cmp(&a.size())
         );
 
-        Ok(Entry {children: children, path: path, self_size: metadata.len()})
+        Ok(Entry {
+            name: utils::short_name_from_path(&path, metadata.is_dir()),
+            children: children,
+            self_size: metadata.len()
+        })
     }
 
     fn for_path(path: PathBuf) -> Result<Entry, String> {
@@ -66,7 +70,7 @@ trait DisplayableEntry : fmt::Display + Sized {
     type Child: DisplayableEntry;
 
     fn size(&self) -> u64;
-    fn name(&self) -> &str;
+    fn name(&self) -> &String;
     fn children_iter(&self) -> Iter<Self::Child>;
 
     fn is_hidden(&self) -> bool {
@@ -81,13 +85,8 @@ impl DisplayableEntry for Entry {
         self.self_size + self.descendent_size()
     }
 
-    fn name(&self) -> &str {
-        // Converting paths to strings might fail. We start by trying to convert the
-        // filename. If the path is something like ".", it will fail as there is no "file
-        // name" in that path. We fall back to the entire path in that case. If that also
-        // fails, we fall back to hardcoded representation.
-        let file_name = self.path.file_name().and_then(|s| s.to_str());
-        file_name.or_else(|| self.path.to_str()).unwrap_or("(no name)")
+    fn name(&self) -> &String {
+        &self.name
     }
 
     fn children_iter(&self) -> Iter<Entry> {
@@ -102,12 +101,25 @@ impl fmt::Display for Entry {
 }
 
 struct Root {
+    name: String,
     entry: Entry,
 }
 
 impl Root {
-    fn new(entry: Entry) -> Root {
-        Root{entry: entry}
+    fn for_path(path: PathBuf) -> Result<Root, String> {
+        match fs::metadata(&path) {
+            Ok(metadata) => Root::from_metadata(path, &metadata),
+            Err(error) => Err(utils::describe_io_error(error))
+        }
+    }
+
+    fn from_metadata(path: PathBuf, metadata: &fs::Metadata) -> Result<Root, String> {
+        Entry::from_metadata(path.clone(), &metadata).map(|entry| {
+            Root{
+                name: utils::full_name_from_path(&path, true),
+                entry: entry,
+            }
+        })
     }
 }
 
@@ -118,8 +130,8 @@ impl DisplayableEntry for Root {
         self.entry.size()
     }
 
-    fn name(&self) -> &str {
-        self.entry.path.to_str().unwrap_or("(no name)")
+    fn name(&self) -> &String {
+        &self.name
     }
 
     fn children_iter(&self) -> Iter<Entry> {
@@ -167,11 +179,11 @@ fn print_indented_tree<T: DisplayableEntry>(entry: &T, options: &Options, level:
 
 fn main() {
     let options = arguments::parse();
-    for root in options.roots() {
-        match Entry::for_path(root.clone()) {
-            Ok(root) => print_tree(&Root::new(root), &options),
+    for root_path in options.roots() {
+        match Root::for_path(root_path.clone()) {
+            Ok(root) => print_tree(&root, &options),
             Err(message) =>
-                println!("{}: {}", root.to_string_lossy(), message)
+                println!("{}: {}", root_path.to_string_lossy(), message)
         }
     }
 }
