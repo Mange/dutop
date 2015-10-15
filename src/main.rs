@@ -52,6 +52,8 @@ impl Entry {
             Ok(read_dir) => {
                 read_dir.filter_map(|child| {
                     match child {
+                        // TODO: Don't just ignore errors here; we should print them to STDERR and
+                        // *then* ignore them.
                         Ok(child) => Entry::for_path(&child.path()).ok(),
                         Err(..) => None,
                     }
