@@ -2,7 +2,7 @@
 extern crate clap;
 
 use std::fs;
-use std::path::{Path,PathBuf};
+use std::path::Path;
 use std::fmt;
 use std::slice::Iter;
 
@@ -19,9 +19,9 @@ struct Entry {
 }
 
 impl Entry {
-    fn from_metadata(path: PathBuf, metadata: &fs::Metadata) -> Result<Entry, String> {
+    fn from_metadata(path: &Path, metadata: &fs::Metadata) -> Result<Entry, String> {
         let mut children = if metadata.is_dir() {
-            Entry::in_directory(&path)
+            Entry::in_directory(path)
         } else if metadata.is_file() {
             vec![]
         } else {
@@ -34,14 +34,14 @@ impl Entry {
         );
 
         Ok(Entry {
-            name: utils::short_name_from_path(&path, metadata.is_dir()),
+            name: utils::short_name_from_path(path, metadata.is_dir()),
             children: children,
             self_size: metadata.len()
         })
     }
 
-    fn for_path(path: PathBuf) -> Result<Entry, String> {
-        match fs::metadata(&path) {
+    fn for_path(path: &Path) -> Result<Entry, String> {
+        match fs::metadata(path) {
             Ok(metadata) => Entry::from_metadata(path, &metadata),
             Err(error) => Err(utils::describe_io_error(error))
         }
@@ -52,7 +52,7 @@ impl Entry {
             Ok(read_dir) => {
                 read_dir.filter_map(|child| {
                     match child {
-                        Ok(child) => Entry::for_path(child.path()).ok(),
+                        Ok(child) => Entry::for_path(&child.path()).ok(),
                         Err(..) => None,
                     }
                 }).collect()
@@ -106,17 +106,17 @@ struct Root {
 }
 
 impl Root {
-    fn for_path(path: PathBuf) -> Result<Root, String> {
-        match fs::metadata(&path) {
+    fn for_path(path: &Path) -> Result<Root, String> {
+        match fs::metadata(path) {
             Ok(metadata) => Root::from_metadata(path, &metadata),
             Err(error) => Err(utils::describe_io_error(error))
         }
     }
 
-    fn from_metadata(path: PathBuf, metadata: &fs::Metadata) -> Result<Root, String> {
-        Entry::from_metadata(path.clone(), &metadata).map(|entry| {
+    fn from_metadata(path: &Path, metadata: &fs::Metadata) -> Result<Root, String> {
+        Entry::from_metadata(path, &metadata).map(|entry| {
             Root{
-                name: utils::full_name_from_path(&path, true),
+                name: utils::full_name_from_path(path, true),
                 entry: entry,
             }
         })
@@ -180,7 +180,7 @@ fn print_indented_tree<T: DisplayableEntry>(entry: &T, options: &Options, level:
 fn main() {
     let options = arguments::parse();
     for root_path in options.roots() {
-        match Root::for_path(root_path.clone()) {
+        match Root::for_path(&root_path) {
             Ok(root) => print_tree(&root, &options),
             Err(message) =>
                 println!("{}: {}", root_path.to_string_lossy(), message)

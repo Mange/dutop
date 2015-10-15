@@ -1,7 +1,7 @@
-use std::path::PathBuf;
+use std::path::Path;
 use std::io::{Error,ErrorKind};
 
-pub fn full_name_from_path(path: &PathBuf, is_dir: bool) -> String {
+pub fn full_name_from_path(path: &Path, is_dir: bool) -> String {
     let name = path.to_string_lossy().into_owned();
     if is_dir {
         name + "/"
@@ -10,7 +10,7 @@ pub fn full_name_from_path(path: &PathBuf, is_dir: bool) -> String {
     }
 }
 
-pub fn short_name_from_path(path: &PathBuf, is_dir: bool) -> String {
+pub fn short_name_from_path(path: &Path, is_dir: bool) -> String {
     match path.file_name() {
         Some(file_name) => {
             let name = file_name.to_string_lossy().into_owned();
