@@ -1,7 +1,10 @@
+use std::env;
+use std::ffi::OsStr;
 use std::path::PathBuf;
-use std::str::FromStr;
 use std::process::exit;
+use std::str::FromStr;
 
+#[derive(Debug, PartialEq, Eq)]
 enum Depth {
     Unlimited,
     Limited(usize)
@@ -35,6 +38,7 @@ impl FromStr for Depth {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 enum Limit {
     Unlimited,
     Limited(usize)
@@ -88,6 +92,13 @@ impl Options {
 }
 
 pub fn parse() -> Options {
+    parse_from(env::args())
+}
+
+// Provided for tests
+fn parse_from<I, T>(iterator: I) -> Options
+    where I: IntoIterator<Item = T>,
+          T: AsRef<OsStr> {
     let matches = clap_app!(dutop =>
         (version: "0.1")
         (author: "Magnus Bergmark <magnus.bergmark@gmail.com>")
@@ -136,7 +147,7 @@ pub fn parse() -> Options {
             -a --all
             "Show hidden files and directories. They are always counted for the total sum."
         )
-    ).get_matches();
+    ).get_matches_from(iterator);
 
     let roots = matches.values_of("DIR").unwrap_or(vec!["."]);
 
@@ -175,71 +186,111 @@ pub fn parse() -> Options {
 
 #[cfg(test)]
 mod tests {
-    use super::{Depth,Limit};
+    use super::{Depth,Limit,parse_from};
+    use std::path::PathBuf;
+
+    // parse_from and Option
+
+    #[test]
+    fn it_has_defaults_on_no_arguments() {
+        let options = parse_from(vec!["dutop"]);
+
+        assert_eq!(options.roots, vec!["."]);
+        assert_eq!(options.limit, Limit::Limited(1));
+        assert_eq!(options.depth, Depth::Limited(1));
+        assert_eq!(options.should_show_hidden(), false);
+
+        assert_eq!(options.limit_reached(0), false);
+        assert_eq!(options.limit_reached(1), true);
+
+        assert_eq!(options.depth_accepts(0), true);
+        assert_eq!(options.depth_accepts(1), false);
+    }
+
+    #[test]
+    fn it_takes_multiple_roots() {
+        let options = parse_from(vec!["dutop", "foo", "bar"]);
+        assert_eq!(options.roots, vec!["foo", "bar"]);
+        assert_eq!(options.roots(), vec![PathBuf::from("foo"), PathBuf::from("bar")]);
+    }
+
+    #[test]
+    fn options_has_depth_information() {
+        let options = parse_from(vec!["dutop", "-d", "0"]);
+        assert_eq!(options.depth, Depth::Unlimited);
+    }
+
+    #[test]
+    fn options_has_limit_information() {
+        let options = parse_from(vec!["dutop", "-n", "0"]);
+        assert_eq!(options.limit, Limit::Unlimited);
+    }
+
+    #[test]
+    fn options_has_show_all_option() {
+        let options = parse_from(vec!["dutop", "-a"]);
+        assert_eq!(options.should_show_hidden(), true);
+    }
+
+    #[test]
+    fn options_defaults_to_unlimited_depth_when_recursive() {
+        let options = parse_from(vec!["dutop", "-r"]);
+        assert_eq!(options.depth, Depth::Unlimited);
+    }
+
+    #[test]
+    fn options_can_override_depth_when_recursive() {
+        let options = parse_from(vec!["dutop", "-d", "5", "-r"]);
+        assert_eq!(options.depth, Depth::Limited(5));
+    }
+
+    // Depth
 
     #[test]
     fn it_parses_positive_depth_from_strings() {
-        match "12".parse::<Depth>() {
-            Ok(Depth::Limited(number)) => assert_eq!(number, 12),
-            Ok(Depth::Unlimited) => panic!("Got an unlimited depth when parsing \"12\"!"),
-            Err(error) => panic!("Could not parse \"12\" into a Depth, got {}", error)
-        }
+        assert_eq!("12".parse::<Depth>(), Ok(Depth::Limited(12)));
     }
 
     #[test]
     fn it_parses_zero_depth_from_strings() {
-        match "0".parse::<Depth>() {
-            Ok(Depth::Unlimited) => (),
-            Ok(Depth::Limited(number)) => panic!("Got a Limited Depth on {}", number),
-            Err(error) => panic!("Could not parse \"0\" into a Depth, got {}", error)
-        }
+        assert_eq!("0".parse::<Depth>(), Ok(Depth::Unlimited));
     }
 
     #[test]
     fn it_parses_named_alias_for_unlimited_depth_from_strings() {
-        match "all".parse::<Depth>() {
-            Ok(Depth::Unlimited) => (),
-            Ok(Depth::Limited(number)) => panic!("Got a Limited Depth on {}", number),
-            Err(error) => panic!("Could not parse \"all\" into a Depth, got {}", error)
-        }
+        assert_eq!("all".parse::<Depth>(), Ok(Depth::Unlimited));
     }
 
     #[test]
-    #[should_panic]
-    fn it_panics_on_broken_depth_strings() {
-        "totally broken".parse::<Depth>().unwrap();
+    fn it_rejects_broken_depth_strings() {
+        assert_eq!(
+            "totally broken".parse::<Depth>(),
+            Err("Not a positive integer or \"all\"".to_string())
+        );
     }
+
+    // Limit
 
     #[test]
     fn it_parses_positive_limit_from_strings() {
-        match "12".parse::<Limit>() {
-            Ok(Limit::Limited(number)) => assert_eq!(number, 12),
-            Ok(Limit::Unlimited) => panic!("Got an unlimited limit when parsing \"12\"!"),
-            Err(error) => panic!("Could not parse \"12\" into a Limit, got {}", error)
-        }
+        assert_eq!("12".parse::<Limit>(), Ok(Limit::Limited(12)));
     }
 
     #[test]
     fn it_parses_zero_limit_from_strings() {
-        match "0".parse::<Limit>() {
-            Ok(Limit::Unlimited) => (),
-            Ok(Limit::Limited(number)) => panic!("Got a Limited Limit on {}", number),
-            Err(error) => panic!("Could not parse \"0\" into a Limit, got {}", error)
-        }
+        assert_eq!("0".parse::<Limit>(), Ok(Limit::Unlimited));
     }
 
     #[test]
     fn it_parses_named_alias_for_unlimited_limit_from_strings() {
-        match "all".parse::<Limit>() {
-            Ok(Limit::Unlimited) => (),
-            Ok(Limit::Limited(number)) => panic!("Got a Limited Limit on {}", number),
-            Err(error) => panic!("Could not parse \"all\" into a Limit, got {}", error)
-        }
+        assert_eq!("all".parse::<Limit>(), Ok(Limit::Unlimited));
     }
 
     #[test]
-    #[should_panic]
-    fn it_panics_on_broken_limit_strings() {
-        "totally broken".parse::<Limit>().unwrap();
+    fn it_rejects_broken_limit_strings() {
+        assert_eq!(
+            "totally broken".parse::<Limit>(),
+            Err("Not a positive integer or \"all\"".to_string())
+        );
     }
 }
