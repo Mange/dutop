@@ -24,7 +24,7 @@ impl FromStr for Depth {
 
         let number = match s.parse::<usize>() {
             Ok(number) => number,
-            Err(_) => return Err("Not a positive integer".to_string())
+            Err(_) => return Err("Not a positive integer or \"all\"".to_string())
         };
 
         if number > 0 {
@@ -44,11 +44,11 @@ impl FromStr for Limit {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, String> {
-        if s == "none" { return Ok(Limit::Unlimited); }
+        if s == "all" { return Ok(Limit::Unlimited); }
 
         let number = match s.parse::<usize>() {
             Ok(number) => number,
-            Err(_) => return Err("Not a positive integer".to_string())
+            Err(_) => return Err("Not a positive integer or \"all\"".to_string())
         };
 
         if number > 0 {
@@ -99,15 +99,15 @@ pub fn parse() -> Options {
         (@arg limit:
             -n [LIMIT]
             {|value| {
-                if value == "none" { return Ok(()); }
+                if value == "all" { return Ok(()); }
                 let parsed = value.parse::<usize>();
                 if parsed.is_ok() {
                     Ok(())
                 } else {
-                    Err("Limit needs to be a non-negative integer or \"none\".".to_string())
+                    Err("Limit needs to be a non-negative integer or \"all\".".to_string())
                 }
             }}
-            "The max number of children shown per directory. Defaults to 1. 0 or \"none\" means \
+            "The max number of children shown per directory. Defaults to 1. 0 or \"all\" means \
                 no limit."
         )
 
@@ -170,5 +170,76 @@ pub fn parse() -> Options {
         limit: limit,
         depth: depth,
         show_all: matches.is_present("all"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Depth,Limit};
+
+    #[test]
+    fn it_parses_positive_depth_from_strings() {
+        match "12".parse::<Depth>() {
+            Ok(Depth::Limited(number)) => assert_eq!(number, 12),
+            Ok(Depth::Unlimited) => panic!("Got an unlimited depth when parsing \"12\"!"),
+            Err(error) => panic!("Could not parse \"12\" into a Depth, got {}", error)
+        }
+    }
+
+    #[test]
+    fn it_parses_zero_depth_from_strings() {
+        match "0".parse::<Depth>() {
+            Ok(Depth::Unlimited) => (),
+            Ok(Depth::Limited(number)) => panic!("Got a Limited Depth on {}", number),
+            Err(error) => panic!("Could not parse \"0\" into a Depth, got {}", error)
+        }
+    }
+
+    #[test]
+    fn it_parses_named_alias_for_unlimited_depth_from_strings() {
+        match "all".parse::<Depth>() {
+            Ok(Depth::Unlimited) => (),
+            Ok(Depth::Limited(number)) => panic!("Got a Limited Depth on {}", number),
+            Err(error) => panic!("Could not parse \"all\" into a Depth, got {}", error)
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn it_panics_on_broken_depth_strings() {
+        "totally broken".parse::<Depth>().unwrap();
+    }
+
+    #[test]
+    fn it_parses_positive_limit_from_strings() {
+        match "12".parse::<Limit>() {
+            Ok(Limit::Limited(number)) => assert_eq!(number, 12),
+            Ok(Limit::Unlimited) => panic!("Got an unlimited limit when parsing \"12\"!"),
+            Err(error) => panic!("Could not parse \"12\" into a Limit, got {}", error)
+        }
+    }
+
+    #[test]
+    fn it_parses_zero_limit_from_strings() {
+        match "0".parse::<Limit>() {
+            Ok(Limit::Unlimited) => (),
+            Ok(Limit::Limited(number)) => panic!("Got a Limited Limit on {}", number),
+            Err(error) => panic!("Could not parse \"0\" into a Limit, got {}", error)
+        }
+    }
+
+    #[test]
+    fn it_parses_named_alias_for_unlimited_limit_from_strings() {
+        match "all".parse::<Limit>() {
+            Ok(Limit::Unlimited) => (),
+            Ok(Limit::Limited(number)) => panic!("Got a Limited Limit on {}", number),
+            Err(error) => panic!("Could not parse \"all\" into a Limit, got {}", error)
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn it_panics_on_broken_limit_strings() {
+        "totally broken".parse::<Limit>().unwrap();
     }
 }
