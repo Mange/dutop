@@ -61,3 +61,38 @@ impl SizeDisplay for u64 {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn it_can_convert_a_path_to_a_string() {
+        let path = Path::new("/path/to");
+
+        assert_eq!(full_name_from_path(&path, false), "/path/to");
+        assert_eq!(full_name_from_path(&path, true), "/path/to/");
+    }
+
+    #[test]
+    fn it_can_convert_a_filename_to_a_string() {
+        let path = Path::new("/path/to");
+
+        assert_eq!(short_name_from_path(&path, false), "to");
+        assert_eq!(short_name_from_path(&path, true), "to/");
+    }
+
+    #[test]
+    fn it_can_format_sizes() {
+        assert_eq!(          1.as_size_display(),       "1 B");
+        assert_eq!(        345.as_size_display(),     "345 B");
+        assert_eq!(       1000.as_size_display(),   "1.00 kB");
+        assert_eq!(       1100.as_size_display(),   "1.10 kB");
+        assert_eq!(      11000.as_size_display(),  "11.00 kB");
+        assert_eq!(123_456_789.as_size_display(), "123.46 MB");
+        assert_eq!(123_452_000.as_size_display(), "123.45 MB");
+
+        assert_eq!(    867_000_000_000.as_size_display(),    "867.00 GB");
+        assert_eq!(867_000_000_000_000.as_size_display(), "867000.00 GB");
+    }
+}
