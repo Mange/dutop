@@ -12,6 +12,7 @@ pub struct Entry {
     name: String,
     self_size: u64,
     children: Vec<Entry>,
+    is_file: bool,
 }
 
 impl Entry {
@@ -39,7 +40,8 @@ impl Entry {
         Ok(Entry {
             name: utils::short_name_from_path(path, metadata.is_dir()),
             children: children,
-            self_size: metadata.len()
+            self_size: metadata.len(),
+            is_file: metadata.is_file(),
         })
     }
 
@@ -77,6 +79,10 @@ impl DisplayableEntry for Entry {
 
     fn children_iter(&self) -> Iter<Entry> {
         self.children.iter()
+    }
+
+    fn is_file(&self) -> bool {
+        self.is_file
     }
 }
 

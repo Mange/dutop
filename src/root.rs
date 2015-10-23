@@ -30,6 +30,10 @@ impl Root {
             }
         })
     }
+
+    pub fn entry(&self) -> &Entry {
+        &self.entry
+    }
 }
 
 impl DisplayableEntry for Root {
@@ -45,6 +49,10 @@ impl DisplayableEntry for Root {
 
     fn children_iter(&self) -> Iter<Entry> {
         self.entry.children_iter()
+    }
+
+    fn is_file(&self) -> bool {
+        self.entry.is_file()
     }
 
     fn is_hidden(&self) -> bool {
