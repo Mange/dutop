@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 use std::slice::Iter;
 
-use DisplayableEntry;
+use modes::DisplayableEntry;
 use entry::Entry;
 use utils;
 use utils::SizeDisplay;
@@ -65,7 +65,7 @@ impl fmt::Display for Root {
 #[cfg(test)]
 mod test {
     use super::*;
-    use DisplayableEntry;
+    use modes::DisplayableEntry;
     use std::path::Path;
 
     #[test]

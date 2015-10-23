@@ -4,6 +4,8 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
+use modes::Mode;
+
 #[derive(Debug, PartialEq, Eq)]
 enum Depth {
     Unlimited,
@@ -61,12 +63,6 @@ impl FromStr for Limit {
             Ok(Limit::Unlimited)
         }
     }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum Mode {
-    Tree,
-    Files,
 }
 
 pub struct Options {
@@ -209,8 +205,9 @@ fn parse_from<I, T>(iterator: I) -> Options
 
 #[cfg(test)]
 mod tests {
-    use super::{Depth,Limit,Mode,parse_from};
+    use super::{Depth,Limit,parse_from};
     use std::path::PathBuf;
+    use modes::Mode;
 
     // parse_from and Option
 
