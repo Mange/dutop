@@ -2,12 +2,7 @@ use std::fmt;
 use std::slice::Iter;
 
 use arguments::Options;
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum Mode {
-    Tree,
-    Files,
-}
+use root::Root;
 
 pub trait DisplayableEntry : fmt::Display + Sized {
     type Child: DisplayableEntry;
@@ -21,7 +16,22 @@ pub trait DisplayableEntry : fmt::Display + Sized {
     }
 }
 
-pub fn print_tree<T: DisplayableEntry>(entry: T, options: &Options) {
+#[derive(Debug, PartialEq, Eq)]
+pub enum Mode {
+    Tree,
+    Files,
+}
+
+impl Mode {
+    pub fn work(&self, root: Root, options: &Options) {
+        match self {
+            &Mode::Tree => print_tree(root, options),
+            &Mode::Files => panic!("Not yet implemented"),
+        }
+    }
+}
+
+fn print_tree<T: DisplayableEntry>(entry: T, options: &Options) {
     print_indented_tree(&entry, options, 0);
 }
 
