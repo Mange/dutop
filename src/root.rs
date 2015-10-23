@@ -94,6 +94,17 @@ mod test {
     }
 
     #[test]
+    fn it_adds_an_ending_slash_to_name_if_directory() {
+        let file           = Root::for_path(Path::new("./LICENSE")).unwrap();
+        let dir_no_slash   = Root::for_path(Path::new("./src")).unwrap();
+        let dir_with_slash = Root::for_path(Path::new("./src/")).unwrap();
+
+        assert_eq!(file.name(),           "./LICENSE");
+        assert_eq!(dir_no_slash.name(),   "./src/");
+        assert_eq!(dir_with_slash.name(), "./src/");
+    }
+
+    #[test]
     fn it_calculates_size_from_children() {
         let root = Root::for_path(Path::new(".")).unwrap();
         let children_size = root

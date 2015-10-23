@@ -3,24 +3,28 @@ use std::io::{Error,ErrorKind};
 
 pub fn full_name_from_path(path: &Path, is_dir: bool) -> String {
     let name = path.to_string_lossy().into_owned();
-    if is_dir {
-        name + "/"
-    } else {
-        name
-    }
+    add_slash_if_needed(name, is_dir)
 }
 
 pub fn short_name_from_path(path: &Path, is_dir: bool) -> String {
     match path.file_name() {
         Some(file_name) => {
             let name = file_name.to_string_lossy().into_owned();
-            if is_dir {
-                name + "/"
-            } else {
-                name
-            }
+            add_slash_if_needed(name, is_dir)
         },
         None => full_name_from_path(path, is_dir)
+    }
+}
+
+fn add_slash_if_needed(string: String, is_dir: bool) -> String {
+    match (string.ends_with("/"), is_dir) {
+        (true, true) | (false, false) => string,
+        (false, true) => string + "/",
+        (true, false) => {
+            let mut string = string;
+            string.pop();
+            string
+        },
     }
 }
 
@@ -80,6 +84,19 @@ mod tests {
 
         assert_eq!(short_name_from_path(&path, false), "to");
         assert_eq!(short_name_from_path(&path, true), "to/");
+    }
+
+    #[test]
+    fn it_handles_ending_slash_already_present() {
+        let path = Path::new("/path/to/");
+
+        // Strip slash of file paths
+        assert_eq!(short_name_from_path(&path, false), "to");
+        assert_eq!(full_name_from_path(&path, false), "/path/to");
+
+        // Don't add an extra slash on directories
+        assert_eq!(short_name_from_path(&path, true), "to/");
+        assert_eq!(full_name_from_path(&path, true), "/path/to/");
     }
 
     #[test]
