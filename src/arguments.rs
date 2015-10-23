@@ -4,6 +4,8 @@ use std::path::PathBuf;
 use std::process::exit;
 use std::str::FromStr;
 
+use modes::Mode;
+
 #[derive(Debug, PartialEq, Eq)]
 enum Depth {
     Unlimited,
@@ -67,12 +69,17 @@ pub struct Options {
     roots: Vec<String>,
     limit: Limit,
     depth: Depth,
+    mode: Mode,
     show_all: bool,
 }
 
 impl Options {
     pub fn roots(&self) -> Vec<PathBuf> {
         self.roots.iter().map(|root| PathBuf::from(&root)).collect()
+    }
+
+    pub fn mode(&self) -> &Mode {
+        &self.mode
     }
 
     pub fn depth_accepts(&self, level: usize) -> bool {
@@ -147,6 +154,12 @@ fn parse_from<I, T>(iterator: I) -> Options
             -a --all
             "Show hidden files and directories. They are always counted for the total sum."
         )
+
+        (@arg files:
+            --files
+            "Print the largest files instead of a tree. Depth will say how far down to look for \
+                the \"largest\" file."
+        )
     ).get_matches_from(iterator);
 
     let roots = matches.values_of("DIR").unwrap_or(vec!["."]);
@@ -176,10 +189,16 @@ fn parse_from<I, T>(iterator: I) -> Options
             exit(2);
         });
 
+    let mode = match matches.is_present("files") {
+        true => Mode::Files,
+        false => Mode::Tree,
+    };
+
     Options{
         roots: roots.iter().map(|value| value.to_string()).collect(),
         limit: limit,
         depth: depth,
+        mode: mode,
         show_all: matches.is_present("all"),
     }
 }
@@ -188,6 +207,7 @@ fn parse_from<I, T>(iterator: I) -> Options
 mod tests {
     use super::{Depth,Limit,parse_from};
     use std::path::PathBuf;
+    use modes::Mode;
 
     // parse_from and Option
 
@@ -242,6 +262,18 @@ mod tests {
     fn options_can_override_depth_when_recursive() {
         let options = parse_from(vec!["dutop", "-d", "5", "-r"]);
         assert_eq!(options.depth, Depth::Limited(5));
+    }
+
+    #[test]
+    fn options_default_to_tree_mode() {
+        let options = parse_from(vec!["dutop"]);
+        assert_eq!(options.mode(), &Mode::Tree);
+    }
+
+    #[test]
+    fn options_can_select_file_mode() {
+        let options = parse_from(vec!["dutop", "--files"]);
+        assert_eq!(options.mode(), &Mode::Files);
     }
 
     // Depth

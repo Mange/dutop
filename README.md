@@ -13,6 +13,7 @@ USAGE:
 
 FLAGS:
     -a, --all          Show hidden files and directories. They are always counted for the total sum.
+        --files        Print the largest files instead of a tree. Depth will say how far down to look for the "largest" file.
     -h, --help         Prints help information
     -r, --recursive    Show the entire tree instead of just the direct children. This implies unlimited --depth.
     -V, --version      Prints version information
